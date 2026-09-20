@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("manager")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  description String?
+  price       Float
+  cost        Float
+  category    String     @default("tea")
+  image       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  billItems   BillItem[]
+  inventory   Inventory?
+}
+
+model Inventory {
+  id        Int      @id @default(autoincrement())
+  productId Int      @unique
+  quantity  Int      @default(0)
+  minLevel  Int      @default(10)
+  maxLevel  Int      @default(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Bill {
+  id            Int        @id @default(autoincrement())
+  billNo        String     @unique
+  totalAmount   Float
+  discount      Float      @default(0)
+  tax           Float      @default(0)
+  finalAmount   Float
+  paymentMethod String     @default("cash")
+  status        String     @default("completed")
+  notes         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  items         BillItem[]
+}
+
+model BillItem {
+  id        Int      @id @default(autoincrement())
+  billId    Int
+  productId Int
+  quantity  Int
+  price     Float
+  total     Float
+  createdAt DateTime @default(now())
+  bill      Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model DailySummary {
+  id          Int      @id @default(autoincrement())
+  date        String   @unique
+  totalSales  Float
+  totalBills  Int
+  totalProfit Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
