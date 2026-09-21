@@ -27,6 +27,9 @@ import inventoryRoutes from '../backend/routes/inventory.js';
 import billRoutes from '../backend/routes/bills.js';
 import dashboardRoutes from '../backend/routes/dashboard.js';
 
+// Serve frontend files
+app.use(express.static(path.join(process.cwd(), 'frontend/public')));
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -34,9 +37,15 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/bills', billRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Tea Shop Billing API is running ☕' });
+});
+
+// Frontend route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'frontend/public/index.html'));
 });
 
 // Error handling
