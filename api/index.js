@@ -45,4 +45,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Internal Server Error' });
 });
 
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🍵 Tea Shop API running on port ${PORT}`);
+});
+
 export default app;
