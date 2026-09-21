@@ -331,3 +331,4 @@ For issues or questions:
 ---
 
 **Made with ☕ for tea shop owners**
+Thank you
