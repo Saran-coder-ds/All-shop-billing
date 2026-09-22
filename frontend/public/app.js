@@ -1,6 +1,6 @@
 const { useState, useEffect, createContext, useContext } = React;
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://all-shop-billing.onrender.com/api';
 
 // Context for auth
 const AuthContext = createContext();
