@@ -11,6 +11,7 @@ const generateBillNo = () => {
 
 export const createBill = async (req, res) => {
   try {
+    const userId = req.user.id;  // ← ADD THIS
     const { items, discount = 0, tax = 0, paymentMethod = 'cash', notes } = req.body;
 
     if (!items || items.length === 0) {
@@ -28,6 +29,11 @@ export const createBill = async (req, res) => {
 
       if (!product) {
         return res.status(404).json({ error: `Product ${item.productId} not found` });
+      }
+
+      // ← ADD THIS: Check if product belongs to user
+      if (product.userId !== userId) {
+        return res.status(403).json({ error: 'Unauthorized: Product does not belong to you' });
       }
 
       const itemTotal = product.price * item.quantity;
@@ -54,6 +60,7 @@ export const createBill = async (req, res) => {
     const bill = await prisma.bill.create({
       data: {
         billNo: generateBillNo(),
+        userId: userId,  // ← ADD THIS
         totalAmount,
         discount: discountAmount,
         tax: taxAmount,
@@ -102,8 +109,11 @@ export const createBill = async (req, res) => {
 
 export const getBills = async (req, res) => {
   try {
+    const userId = req.user.id;  // ← ADD THIS
     const { status, startDate, endDate } = req.query;
-    const where = {};
+    const where = {
+      userId: userId  // ← ADD THIS
+    };
 
     if (status) {
       where.status = status;
@@ -133,6 +143,7 @@ export const getBills = async (req, res) => {
 
 export const getBillById = async (req, res) => {
   try {
+    const userId = req.user.id;  // ← ADD THIS
     const { id } = req.params;
 
     const bill = await prisma.bill.findUnique({
@@ -140,7 +151,8 @@ export const getBillById = async (req, res) => {
       include: { items: { include: { product: true } } }
     });
 
-    if (!bill) {
+    // ← ADD THIS: Check ownership
+    if (!bill || bill.userId !== userId) {
       return res.status(404).json({ error: 'Bill not found' });
     }
 
@@ -152,16 +164,26 @@ export const getBillById = async (req, res) => {
 
 export const updateBillStatus = async (req, res) => {
   try {
+    const userId = req.user.id;  // ← ADD THIS
     const { id } = req.params;
     const { status } = req.body;
 
-    const bill = await prisma.bill.update({
+    // ← ADD THIS: Verify ownership first
+    const bill = await prisma.bill.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!bill || bill.userId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const updatedBill = await prisma.bill.update({
       where: { id: parseInt(id) },
       data: { status },
       include: { items: { include: { product: true } } }
     });
 
-    res.json(bill);
+    res.json(updatedBill);
   } catch (error) {
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Bill not found' });
@@ -172,6 +194,7 @@ export const updateBillStatus = async (req, res) => {
 
 export const deleteBill = async (req, res) => {
   try {
+    const userId = req.user.id;  // ← ADD THIS
     const { id } = req.params;
 
     const bill = await prisma.bill.findUnique({
@@ -179,8 +202,9 @@ export const deleteBill = async (req, res) => {
       include: { items: true }
     });
 
-    if (!bill) {
-      return res.status(404).json({ error: 'Bill not found' });
+    // ← ADD THIS: Check ownership
+    if (!bill || bill.userId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
     }
 
     // Restore inventory

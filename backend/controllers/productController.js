@@ -4,6 +4,7 @@ const prisma = new PrismaClient();
 
 export const createProduct = async (req, res) => {
   try {
+    const userId = req.user.id;  // ← ADD
     const { name, description, price, cost, category, image } = req.body;
 
     if (!name || !price || !cost) {
@@ -18,6 +19,7 @@ export const createProduct = async (req, res) => {
         cost: parseFloat(cost),
         category: category || 'tea',
         image,
+        userId: userId,  // ← ADD
         inventory: {
           create: {
             quantity: 0,
@@ -41,8 +43,12 @@ export const createProduct = async (req, res) => {
 
 export const getProducts = async (req, res) => {
   try {
+    const userId = req.user.id;  // ← ADD
     const { category } = req.query;
-    const where = category ? { category } : {};
+    const where = {
+      userId: userId,  // ← ADD
+      ...(category && { category })  // ← CHANGE
+    };
 
     const products = await prisma.product.findMany({
       where,
@@ -58,6 +64,7 @@ export const getProducts = async (req, res) => {
 
 export const getProductById = async (req, res) => {
   try {
+    const userId = req.user.id;  // ← ADD
     const { id } = req.params;
 
     const product = await prisma.product.findUnique({
@@ -65,7 +72,7 @@ export const getProductById = async (req, res) => {
       include: { inventory: true }
     });
 
-    if (!product) {
+    if (!product || product.userId !== userId) {  // ← CHANGE
       return res.status(404).json({ error: 'Product not found' });
     }
 
@@ -77,10 +84,19 @@ export const getProductById = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   try {
+    const userId = req.user.id;  // ← ADD
     const { id } = req.params;
     const { name, description, price, cost, category, image } = req.body;
 
-    const product = await prisma.product.update({
+    const product = await prisma.product.findUnique({  // ← ADD
+      where: { id: parseInt(id) }
+    });
+
+    if (!product || product.userId !== userId) {  // ← ADD
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const updatedProduct = await prisma.product.update({  // ← CHANGE
       where: { id: parseInt(id) },
       data: {
         ...(name && { name }),
@@ -93,7 +109,7 @@ export const updateProduct = async (req, res) => {
       include: { inventory: true }
     });
 
-    res.json(product);
+    res.json(updatedProduct);  // ← CHANGE
   } catch (error) {
     console.error(error);
     if (error.code === 'P2002') {
@@ -108,7 +124,16 @@ export const updateProduct = async (req, res) => {
 
 export const deleteProduct = async (req, res) => {
   try {
+    const userId = req.user.id;  // ← ADD
     const { id } = req.params;
+
+    const product = await prisma.product.findUnique({  // ← ADD
+      where: { id: parseInt(id) }
+    });
+
+    if (!product || product.userId !== userId) {  // ← ADD
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
 
     await prisma.product.delete({
       where: { id: parseInt(id) }

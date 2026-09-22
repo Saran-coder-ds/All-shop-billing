@@ -13,6 +13,11 @@ model User {
   password  String
   name      String
   role      String   @default("manager")
+  
+  // Relations ← ADD THESE
+  products  Product[] @relation("UserProducts")
+  bills     Bill[]    @relation("UserBills")
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -25,6 +30,11 @@ model Product {
   cost        Float
   category    String     @default("tea")
   image       String?
+  
+  // User relationship ← ADD THESE
+  userId      Int
+  user        User       @relation("UserProducts", fields: [userId], references: [id], onDelete: Cascade)
+  
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   billItems   BillItem[]
@@ -45,6 +55,11 @@ model Inventory {
 model Bill {
   id            Int        @id @default(autoincrement())
   billNo        String     @unique
+  
+  // User relationship ← ADD THESE
+  userId        Int
+  user          User       @relation("UserBills", fields: [userId], references: [id], onDelete: Cascade)
+  
   totalAmount   Float
   discount      Float      @default(0)
   tax           Float      @default(0)
